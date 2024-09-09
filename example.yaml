@@ -39,8 +39,7 @@ resources:
   system_memory_mib:
     range: [1000, 2000] # 1-2 GB of system memory * the multipler
   gpus: 0  # Number of GPUs when running with GPU as per gpu_required below.
-  #gpu_memory_mib:  # GPU memory requirements per GPU assigned
-  #  range: [8000, 16000] # Works with anything between of 8 or 16 GB of GPU memory * the multipler
+  gpu_memory_mib: null  # GPU memory requirements per GPU assigned
   gpu_required: false  # If the analysis requires a GPU to run or can run on CPU only
   per_hour_multipliers:
     # Multipliers for resources required per hour of signal. 1.0 corresponds to the base resource
@@ -90,7 +89,7 @@ licence:
 # Input data requirements for the analysis
 # A list of input files of possible types:
 #   - 'recording' for signal data / sleep recording, e.g. EEG/EOG. Usually an EDF file.
-#   - 
+#   -
 inputs:
   # The 'recording' input type represents one or more signal data / sleep recording file(s). Usually a single EDF file.
   # Analyses that support recieving signals over multiple files should have 'allow_multiple' set to true and support
