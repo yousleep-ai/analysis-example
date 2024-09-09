@@ -1,0 +1,195 @@
+# An example analysis config for an analysis which does roughly the following:
+# - Recieves a single EDF file that has at least 1 EEG channel (any)
+# - Has a small set of resource requirements (1-2 CPU cores, 1-2 GB of system memory, no GPU)
+# - Has arbitrary costs (none) and limits (low)
+# - Outputs the "Sleep stage ?" unknown stage for all epochs in the recording
+# - Can be configured with a single example parameter '--staging-window-length' which can be 15, 30 or 60
+
+# All other fields are examples/placeholders to be filled in by the analysis developer
+# The fields are described in the documentation at https://docs.yousleep.ai/analysis-config
+
+# General ID and version information
+identification:
+  # The human readable, unique name of the analysis
+  name: "Example Analysis"
+
+purpose:
+  description: "This is a minimal analysis example for the YouSleep Portal."
+  analysis_types:
+    - "staging"
+
+evidence:
+  publications:
+    - title: "Example full paper title"
+      url: https://www.example.com/
+      name: "Authors et al., 2024"
+
+# Docker image settings used to build the analysis image
+docker:
+  image: "yousleep/example-analysis"
+  tag: "1.0"
+  remote_https_url: "https://github.com/yousleep-ai/analysis-example"
+  # relative_ssh_key_path: './id_rsa' # Path from root repo to a private SSH key for accessing the remote repository
+  relative_build_path: "./" # Path from root repo to a folder storing the Dockerfile
+
+# System requirement ranges
+resources:
+  cpu_cores:
+    range: [1, 2] # 1-2 CPU cores * the multipler
+  system_memory_mib:
+    range: [1000, 2000] # 1-2 GB of system memory * the multipler
+  gpus: 0  # Number of GPUs when running with GPU as per gpu_required below.
+  #gpu_memory_mib:  # GPU memory requirements per GPU assigned
+  #  range: [8000, 16000] # Works with anything between of 8 or 16 GB of GPU memory * the multipler
+  gpu_required: false  # If the analysis requires a GPU to run or can run on CPU only
+  per_hour_multipliers:
+    # Multipliers for resources required per hour of signal. 1.0 corresponds to the base resource
+    # requirements independt of the signal duration.
+    cpu_cores: 1.0
+    system_memory_mib: 1.0
+    #gpu_memory_mib: 1.0
+
+# Usage limits for the analysis given a subscription level
+limits:
+  subscription_levels:
+    free: # subscription level
+      max_hours_per_analysis: 24 # Maximum analysis duration in hours of a single analysis
+      max_hours_per_month: 24    # Maximum hours of signal data that can be scored per user per rolling month
+    pro:
+      max_hours_per_analysis: 24 # Example values
+      max_hours_per_month: 24    # Example values
+
+# Costs for the analysis
+costs:
+  currency: "credits"
+  subscription_levels:
+    free: # Subscription level
+      base: 0.0     # Base cost of the analysis
+      per_hour: 0.0 # Cost per hour of signal data scored
+    pro:
+      base: 0.0
+      per_hour: 0.0
+    enterprise:
+      base: 0.0
+      per_hour: 0.0
+
+# Priority of the analysis
+priority:
+  base: 0  # Base priority of the analysis (baseline for any user/subscription level). Higher value means higher priority.
+  subscription_levels:
+    free: 0  # Priority of the analysis for the free subscription level. Higher value means higher priority. Added to the base priority.
+    pro: 1
+    enterprise: 2
+
+# Licence information
+licence:
+  name: "YouSleep-Research"
+  url: "https://yousleep.ai/licences/research"
+  description: "This model can be used only for non-commercial, non-clinical, research-only purposes. It has no associated analysis cost. It can be used to score a maximum of 1000 hours of signal data per user per rolling month."
+
+# Input data requirements for the analysis
+# A list of input files of possible types:
+#   - 'recording' for signal data / sleep recording, e.g. EEG/EOG. Usually an EDF file.
+#   - 
+inputs:
+  # The 'recording' input type represents one or more signal data / sleep recording file(s). Usually a single EDF file.
+  # Analyses that support recieving signals over multiple files should have 'allow_multiple' set to true and support
+  # recieving multiple paths as input to the recording argument.
+  metadata: null  # No metadata file is required for this analysis
+  events: null    # No events file is required for this analysis
+  recording:
+    allow_multiple: false    # Only one recording file is allowed. Value will be a single path string.
+    format: "edf" # Only allow EDF file formats to be passed to the analysis
+    description: "The input recordings data to be scored."
+    minimum_duration_seconds: 1  # Example value
+    channels: []
+      # (optionally empty) a list of specific channel names and types that are required. Empty list means any channel as per channel_types is accepted.
+      # Cannot be used if 'channel_types' is set.
+      # Example:
+      # - name: "EEG Fp1-A2"
+      #   type: "EEG"
+      #   requirements:
+      #    ...
+    channel_types:
+      # (optionally empty) or a list of channel types that are required. Empty list means only specific channels in 'channels' are accepted.
+      # Cannot be used if 'channels' is set.
+      - type: "EEG"
+        number:
+          range: [1, 8] # 1-8 EEG channels
+        requirements:
+          sampling_rate:
+            range: [100, "+inf"] # Sampling rate must be at least 100 Hz, no upper limit
+          quality:
+            # A list of quality constraints that the channel must satisfy
+            - score:
+                range: [0.0, "+inf"] # Quality must be at least 0.0, no upper limit
+              # 'signal_quality_score' is a method that the platform uses to calculate the quality of the signal
+              # The method is defined by the platform and the analysis does not need to implement it
+              method: "signal_quality_score"
+              # modes can be 'global' or 'per_epoch'. If global, the channel cannot be passed to the
+              # analysis if the whole-recording quality is below the min_quality. If per_epoch, the channel
+              # can be passed to the analysis. If 'per_epoch', the analysis will receive the channel
+              # but the platform will indicate that any events within epochs with quality below
+              # min_quality should be considered uncertain.
+              mode: "global"
+
+outputs:
+  # 'fields' is a list of output data that the analysis produces in the JSON output file
+  # The file may contain other fields, but they are not processed by the YouSleep platform
+  events:
+    - label: "Sleep stage ?"
+      instant: false
+      probabilistic: false
+      valued: false
+
+# Analysis parameters (global as well as analysis-specific listed)
+parameters:
+  defaults:
+    # Parameters that are always going to be passed to the analysis by the platform and therefor
+    # has to be handled by the analysis. They are listed here to make it clear that they are
+    # always present. Removing them from the analysis input will result in an error during data
+    # model validation. The target/mapping can, however, optionally be changed to match the
+    # analysis' argparser.
+    # Flag to use to pass path to the recording file
+    recording_input_file: "--input-file"
+    # Flag to use to pass path to events input file
+    # Not used in this analysis
+    # events_input_file: "--events-file"
+    # Flag to use to pass path to input metadata file
+    # Not used in this analysis
+    # metadata_input_file: "--metadata-file"
+    # Flag to use to pass path to the analysis' output file
+    output_file: "--output-file"
+    # Flag to pass list (as JSON format string) of channel names that the analysis should consider
+    channel_names: "--channel-names"
+    # Flag to pass list (as JSON format string) of channel types of the channels
+    channel_types: "--channel-types"
+    # Flag to pass list (as JSON format string) of channel/signal units of the channels
+    channel_units: "--channel-units"
+    # Number of CPU cores that is available to the analysis
+    cpus: "--cpus"
+    # Amount of system memory that is available to the analysis in MiB
+    memory_mib: "--memory-mib"
+    # The number of GPUs that is available to the analysis
+    # Not used in this analysis
+    #gpus: "--gpus"
+    # The amount of GPU memory in MiB as a postive integer that is available to the analysis per GPU. Will be zero if no GPU is made available.
+    # Not used in this analysis
+    #gpu_memory_mib: "--gpu-memory-mib"
+    # The nvidia device ID GPU device that is available to the analysis. Will not be set if no GPU is made available.
+    # Not used in this analysis
+    #gpu_devices: "--gpu-devices"
+
+  custom:
+    # Parameters that are specific to the analysis and are passed to the analysis by the user.
+    - name: "Staging window length"
+      type: "int"
+      argument: "--staging-window-length-ms"
+      default: 30000
+      choices:
+        - value: 15000
+          description: "15 seconds"
+        - value: 30000
+          description: "30 seconds"
+        - value: 60000
+          description: "60 seconds"
