@@ -24,7 +24,7 @@ All events are represented as a list of dictionaries, where each dictionary repr
 }
 ```
 
-Where `start_time_ms` and `end_time_ms` are the start and end times of the event in milliseconds relative to the begining of the recording, `label` is an `EDF+` label (no other strings allowed) of the event, `channels` is a list of the channels that the event is associated with (can be empty to signify global/all channels event), `probability` is an optional probability in [0, 1] of the event, and `value` is an optional the value associated with the event.
+Where `start_time_ms` and `end_time_ms` are the start and end times of the event in milliseconds relative to the begining of the recording, `label` is an `EDF+` label (no other strings allowed) of the event, `channels` is a list of the channels that the event is associated with (can be empty to signify global/all channels event), `probability` is an optional field giving the probability in [0, 1] of the event, and `value` is an optional field giving value associated with the event.
 
 ## Example (stand-alone) usage
 
