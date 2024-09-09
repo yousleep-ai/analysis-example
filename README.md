@@ -4,7 +4,14 @@ A minimal youSleep Portal analysis example showing how to package a an analysis 
 
 At minimum, to implement an analysis into youSleep Portal, a repository (like this one) must contain the following 3 files:
 
-1. An **analysis configuration** `YAML` file, see [example.yaml](./example.yaml). The analysis configuration defines the interface between youSleep Portal and this analysis script. At a high level, an analysis maps one or more of the following: Recording EDF file(s), an event file (JSON) and a metadata file (JSON) to an output events file (JSON). The output events file contains a list of `events`, which have the following format (example values):
+1. An **analysis configuration** `YAML` file, see [example.yaml](./example.yaml). The analysis configuration defines the interface between youSleep Portal and this analysis script. At a high level, an analysis maps one or more of the following: Recording EDF file(s), an event file (JSON) and a metadata file (JSON) to an output events file (JSON). The output events file contains a list of [Events](#events).
+
+2. The analysis script or package that performs the actual analysis, see e.g., [example-analysis.py](./example-analysis.py). Any language and packaging can be used. The analysis script must accept a set of mandatory input arguments (see `parameters.default` field in the analysis configuration). It can optionally define any number of custom input parameters which must be specified by the user of the script via the youSleep Portal UI. The analysis script must output a JSON file containing a list of `events` (see above) to be saved at a path passed with the `--output-file` argument.
+
+3. A [Dockerfile](./Dockerfile) that wraps the analysis script and its dependencies into a Docker container.
+
+## Events
+All events are represented as a list of dictionaries, where each dictionary represents an event. Each event dictionary must contain the following fields:
 
 ```json
 {
@@ -18,10 +25,6 @@ At minimum, to implement an analysis into youSleep Portal, a repository (like th
 ```
 
 Where `start_time_ms` and `end_time_ms` are the start and end times of the event in milliseconds relative to the begining of the recording, `label` is an `EDF+` label (no other strings allowed) of the event, `channels` is a list of the channels that the event is associated with (can be empty to signify global/all channels event), `probability` is an optional probability in [0, 1] of the event, and `value` is an optional the value associated with the event.
-
-2. The analysis script or package (any language and packaging can be used) that performs the actual analysis. The analysis script must accept a set of mandatory input arguments (see `parameters.default` field in the analysis configuration). It can optionally define any number of custom input parameters which must be specified by the user of the script via the youSleep Portal UI. The analysis script must output a JSON file containing a list of `events` (see above) to be saved at a path passed with the `--output-file` argument.
-
-3. A Docker file that wraps the analysis script and its dependencies into a Docker container.
 
 ## Example (stand-alone) usage
 
