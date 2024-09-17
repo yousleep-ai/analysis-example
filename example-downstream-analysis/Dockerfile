@@ -12,7 +12,7 @@ COPY requirements.txt /app/requirements.txt
 RUN pip3 install -r /app/requirements.txt
 
 # Copy the source code
-COPY example-analysis.py /app/example-analysis.py
+COPY example-downstream-analysis.py /app/example-downstream-analysis.py
 
 # Run the analysis
-ENTRYPOINT ["python3", "/app/example-analysis.py"]
+ENTRYPOINT ["python3", "example-downstream-analysis.py"]
