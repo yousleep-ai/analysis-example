@@ -16,7 +16,7 @@ identification:
 purpose:
   description: "This is a minimal analysis downstream example for the youSleep portal, which is used to demonstrate how one analysis (the Example Sleep Staging v1 analysis, specifically), can pass its produced output sleep stage events as an input to another analysis. This analyis does not perform any actual analysis, but simply returns the 'EEG arousal' field whereever the input events are 'Sleep stage ?'."
   analysis_types:
-    - "staging"
+    - "arousals"
 
 evidence:
   publications:

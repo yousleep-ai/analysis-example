@@ -75,7 +75,7 @@ def main():
     The main analysis function which does roughly the following:
     1. Parse the arguments.
     2. Load the EDF file and validates its length matches the events file.
-    3. Writes 'EDF Arousal' events whereevere the events file has 'Sleep stage ?' events.
+    3. Writes 'EEG arousal' events whereevere the events file has 'Sleep stage ?' events.
     """
     # Parse the arguments
     args = parse_args()
@@ -104,11 +104,11 @@ def main():
         )
 
     # Create 'EDF Arousal' events matching the 'Sleep stage ?' events
-    logger.info("Creating 'EDF Arousal' events...")
+    logger.info("Creating 'EEG arousal' events...")
     arousal_events = []
     for event in events:
         arousal_event = create_event(
-            "EDF Arousal",
+            "EEG arousal",
             event["start_time_ms"],
             event["end_time_ms"],
             args.channel_names,
