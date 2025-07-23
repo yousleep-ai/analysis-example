@@ -12,7 +12,7 @@ COPY requirements.txt /app/requirements.txt
 RUN pip3 install -r /app/requirements.txt
 
 # Copy the source code
-COPY example-sleep-staging.py /app/example-sleep-staging.py
+COPY example-sleep-staging-analysis.py /app/example-sleep-staging-analysis.py
 
 # Run the analysis
-ENTRYPOINT ["python3", "example-sleep-staging.py"]
+ENTRYPOINT ["python3", "example-sleep-staging-analysis.py"]

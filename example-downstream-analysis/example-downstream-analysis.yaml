@@ -26,11 +26,11 @@ evidence:
 
 # Docker image settings used to build the analysis image
 docker:
-  image: "yousleep/example-downstream-analysis"
-  tag: "1.0"
+  image: "ghcr.io/yousleep-ai/yousleep/example-downstream-analysis"
+  tag: "latest"
   remote_https_url: "https://github.com/yousleep-ai/analysis-example"
   # relative_ssh_key_path: './id_rsa' # Path from root repo to a private SSH key for accessing the remote repository
-  relative_build_path: "./" # Path from root repo to a folder storing the Dockerfile
+  relative_build_path: "./example-downstream-analysis" # Path from root repo to a folder storing the Dockerfile
 
 # System requirement ranges
 resources:
