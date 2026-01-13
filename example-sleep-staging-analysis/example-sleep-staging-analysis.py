@@ -6,6 +6,7 @@ A minimal example of an analysis script that interfaces with the youSleep Portal
 import logging
 import json
 import math
+from pathlib import Path
 from typing import List
 from argparse import ArgumentParser
 
@@ -112,6 +113,7 @@ def main():
 
     # Write events to output file
     logger.info("Saving %d events to %s", len(events), args.output_file)
+    Path(args.output_file).parent.mkdir(parents=True, exist_ok=True)
     with open(args.output_file, "w", encoding="utf-8") as f:
         json.dump(events, f, indent=4)
 
