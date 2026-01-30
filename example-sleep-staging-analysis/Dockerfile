@@ -4,6 +4,11 @@ FROM ubuntu:22.04
 WORKDIR /app
 RUN mkdir -p /app
 
+# Add container metadata labels
+LABEL org.opencontainers.image.source="https://github.com/yousleep-ai/analysis-example"
+LABEL org.opencontainers.image.description="Example Sleep Staging Analysis"
+LABEL org.opencontainers.image.licenses="Proprietary"
+
 # Install Python
 RUN apt-get update && apt-get install -y python3 python3-pip
 
