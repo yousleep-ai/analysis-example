@@ -4,7 +4,6 @@ A minimal example of an analysis script that interfaces with the youSleep Portal
 
 # Import inbuilt packages
 import logging
-import json
 import math
 from pathlib import Path
 from typing import List
@@ -12,6 +11,8 @@ from argparse import ArgumentParser
 
 # Import third-party packages
 import mne
+from yousleep_common.models.events import Event
+from yousleep_common.utils.event_blocks import write_event_blocks
 
 # Define module logger
 logging.basicConfig(level=logging.INFO)
@@ -64,18 +65,23 @@ def parse_args():
     return parser.parse_args()
 
 
-def create_event(label: str, start_ms: int, end_ms: int, channels: List[str]) -> dict:
+def create_event(label: str, start_ms: int, end_ms: int, channels: List[str]) -> Event:
     """
-    Returns an event dictionary with the given label, start and end times.
+    Returns an Event with the given label, start and end times.
+
+    `Event` is the platform contract (yousleep_common). Building real Event
+    objects validates labels and times here, in the container, instead of at
+    upload -- and `write_event_blocks` below encodes them into the block
+    document, the one output format the platform accepts.
     """
-    return {
-        "start_time_ms": start_ms,  # Start time of the event in milliseconds
-        "end_time_ms": end_ms,  # End time of the event in milliseconds
-        "label": label,  # Valid EDF+ label (e.g., 'Sleep stage ?')
-        "channels": channels,  # Optional channel names the event refers to. Empty == all channels.
-        # "probability": None,     # If a probabilistic event, a float in [0, 1] representing the probability.
-        # "value": None,           # If a valued event, a float representing the value.
-    }
+    return Event(
+        start_time_ms=start_ms,  # Start time of the event in milliseconds
+        end_time_ms=end_ms,  # End time of the event in milliseconds
+        label=label,  # Valid EDF+ label (e.g., 'Sleep stage ?')
+        channels=channels,  # Optional channel names. Empty == all channels.
+        # probability=None,  # If probabilistic, a float in [0, 1].
+        # value=None,        # If valued, a float.
+    )
 
 
 def main():
@@ -111,11 +117,11 @@ def main():
         event = create_event("Sleep stage ?", start_ms, end_ms, args.channel_names)
         events.append(event)
 
-    # Write events to output file
+    # Write the events output document (block-encoded on the way out)
     logger.info("Saving %d events to %s", len(events), args.output_file)
     Path(args.output_file).parent.mkdir(parents=True, exist_ok=True)
     with open(args.output_file, "w", encoding="utf-8") as f:
-        json.dump(events, f, indent=4)
+        write_event_blocks(events, f)
 
 
 if __name__ == "__main__":
