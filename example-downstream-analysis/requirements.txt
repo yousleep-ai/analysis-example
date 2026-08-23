@@ -1,1 +1,2 @@
 mne==1.7.1
+yousleep-common>=12.23.0,<13

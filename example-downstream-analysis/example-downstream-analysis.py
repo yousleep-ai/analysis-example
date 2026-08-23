@@ -4,13 +4,18 @@ A minimal example of an analysis script that interfaces with the youSleep Portal
 
 # Import inbuilt packages
 import logging
-import json
 from pathlib import Path
 from typing import List
 from argparse import ArgumentParser
 
 # Import third-party packages
 import mne
+from yousleep_common.models.events import Event
+from yousleep_common.utils.event_blocks import (
+    blocks_to_events,
+    load_events_output,
+    write_event_blocks,
+)
 
 # Define module logger
 logging.basicConfig(level=logging.INFO)
@@ -57,18 +62,16 @@ def parse_args():
     return parser.parse_args()
 
 
-def create_event(label: str, start_ms: int, end_ms: int, channels: List[str]) -> dict:
+def create_event(label: str, start_ms: int, end_ms: int, channels: List[str]) -> Event:
     """
-    Returns an event dictionary with the given label, start and end times.
+    Returns an Event with the given label, start and end times.
     """
-    return {
-        "start_time_ms": start_ms,  # Start time of the event in milliseconds
-        "end_time_ms": end_ms,  # End time of the event in milliseconds
-        "label": label,  # Valid EDF+ label (e.g., 'Sleep stage ?')
-        "channels": channels,  # Optional channel names the event refers to. Empty == all channels.
-        # "probability": None,     # If a probabilistic event, a float in [0, 1] representing the probability.
-        # "value": None,           # If a valued event, a float representing the value.
-    }
+    return Event(
+        start_time_ms=start_ms,
+        end_time_ms=end_ms,
+        label=label,  # Valid EDF+ label (e.g., 'EEG arousal')
+        channels=channels,  # Optional channel names. Empty == all channels.
+    )
 
 
 def main():
@@ -91,16 +94,17 @@ def main():
     n_samples = edf_file.n_times
     length_ms = int(n_samples / sampling_rate * 1000)
 
-    # Load the events
+    # Load the input events. `load_events_output` accepts every schema the
+    # platform has ever written -- the block document and the legacy event
+    # lists -- and returns one canonical document either way.
     logger.info("Loading events...")
-    with open(args.events_file, "r", encoding="utf-8") as f:
-        events = json.load(f)
+    events = blocks_to_events(load_events_output(args.events_file).blocks)
 
     # Check that the last event ends at the end of the recording
-    last_event = events[-1]
-    if last_event["end_time_ms"] != length_ms:
+    last_event = max(events, key=lambda e: e.end_time_ms)
+    if last_event.end_time_ms != length_ms:
         raise ValueError(
-            f"Last event ends at {last_event['end_time_ms']} ms, but the recording ends "
+            f"Last event ends at {last_event.end_time_ms} ms, but the recording ends "
             f"at {length_ms} ms."
         )
 
@@ -110,17 +114,17 @@ def main():
     for event in events:
         arousal_event = create_event(
             "EEG arousal",
-            event["start_time_ms"],
-            event["end_time_ms"],
+            event.start_time_ms,
+            event.end_time_ms,
             args.channel_names,
         )
         arousal_events.append(arousal_event)
 
-    # Write events to output file
+    # Write the events output document (block-encoded on the way out)
     logger.info("Saving %d events to %s", len(arousal_events), args.output_file)
     Path(args.output_file).parent.mkdir(parents=True, exist_ok=True)
     with open(args.output_file, "w", encoding="utf-8") as f:
-        json.dump(arousal_events, f, indent=4)
+        write_event_blocks(arousal_events, f)
 
 
 if __name__ == "__main__":
