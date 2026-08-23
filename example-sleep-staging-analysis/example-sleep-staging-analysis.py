@@ -12,7 +12,7 @@ from argparse import ArgumentParser
 # Import third-party packages
 import mne
 from yousleep_common.models.events import Event
-from yousleep_common.utils.event_blocks import write_event_blocks
+from yousleep_common.utils.event_blocks import save_event_blocks
 
 # Define module logger
 logging.basicConfig(level=logging.INFO)
@@ -119,9 +119,11 @@ def main():
 
     # Write the events output document (block-encoded on the way out)
     logger.info("Saving %d events to %s", len(events), args.output_file)
+    # save_event_blocks is suffix-aware: the platform hands containers an
+    # output path ending .json.gz, and the document is written gzip-compressed
+    # there -- the artifact stored on S3 is byte-identical to this file.
     Path(args.output_file).parent.mkdir(parents=True, exist_ok=True)
-    with open(args.output_file, "w", encoding="utf-8") as f:
-        write_event_blocks(events, f)
+    save_event_blocks(args.output_file, events)
 
 
 if __name__ == "__main__":
