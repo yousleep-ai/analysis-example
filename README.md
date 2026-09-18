@@ -6,7 +6,7 @@ At minimum, to implement an analysis into youSleep Portal, a repository (like th
 
 1. An **analysis configuration** `YAML` file, see [example.yaml](./example.yaml). The analysis configuration defines the interface between youSleep Portal and this analysis script. At a high level, an analysis maps one or more of the following: Recording EDF file(s), an event file (JSON) and a metadata file (JSON) to an output events file (JSON). The output events file contains a list of [Events](#events).
 
-2. The analysis script or package that performs the actual analysis, see e.g., [example-analysis.py](./example-analysis.py). Any language and packaging can be used. The analysis script must accept a set of mandatory input arguments (see `parameters.default` field in the analysis configuration). It can optionally define any number of custom input parameters which must be specified by the user of the script via the youSleep Portal UI. The analysis script must output a JSON file containing a list of `events` (see above) to be saved at a path passed with the `--output-file` argument.
+2. The analysis script or package that performs the actual analysis, see e.g., [example-sleep-staging-analysis.py](./example-sleep-staging-analysis/example-sleep-staging-analysis.py). Any language and packaging can be used. The portal invokes the container with **one argument**, `--manifest-file <path>`, and nothing else. The manifest is a JSON document (`yousleep_common.models.AnalysisManifest`) naming the recording and the output path as the container sees them, the channels selected for the run (by index, with their header label and display name), the custom parameters typed as the analysis configuration declared them, and the resources the run has. The script reads it, does its work, and writes the events document to the manifest's output path.
 
 3. A [Dockerfile](./Dockerfile) that wraps the analysis script and its dependencies into a Docker container.
 
@@ -28,14 +28,30 @@ Where `start_time_ms` and `end_time_ms` are the start and end times of the event
 
 ## Example (stand-alone) usage
 
+`yousleep-manifest` (installed with `yousleep-common`) writes a manifest from an
+EDF header, so an analysis runs outside the portal in two commands:
+
 ```bash
-python example-analysis.py \
-    --input-file ../yousleep-analyses/tests/test_data/SC4761E0-PSG-1.edf \
-    --output-file ./output-events.json \
-    --channel-names Fpz-Cz \
-    --channel-types EEG \
-    --channel-units uV \
-    --cpus 1 \
-    --memory-mib 1000 \
-    --staging-window-length-ms 30000
+pip install "yousleep-common>=24" mne==1.7.1
+yousleep-manifest --recording ../usleep/tests/test_data/SC4761E0-PSG.edf \
+    --recording-path ../usleep/tests/test_data/SC4761E0-PSG.edf \
+    --output-path ./output-events.json.gz \
+    --config-id example-sleep-staging-analysis-v1 \
+    --channel "EEG Fpz-Cz" --param staging-window-length-ms=30000 \
+    --cpus 1 --memory-mib 1000 > manifest.json
+python example-sleep-staging-analysis/example-sleep-staging-analysis.py --manifest-file manifest.json
 ```
+
+In Docker, mount the working directory at `/local` and let the paths default:
+
+```bash
+yousleep-manifest --recording night.edf --config-id example-sleep-staging-analysis-v1 > manifest.json
+docker run --rm -v "$PWD:/local" ghcr.io/yousleep-ai/yousleep/example-sleep-staging-analysis:latest \
+    --manifest-file /local/manifest.json
+```
+
+The downstream example additionally needs `--events-path` pointing at an
+upstream events document. The exact manifest the portal gives each registered
+analysis is committed in the platform repository as
+`tests/contract/dispatch_manifest.json`; the analysis configuration YAMLs in
+this repository are copies of the registered ones.

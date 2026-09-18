@@ -1,2 +1,2 @@
-mne==1.7.1
-yousleep-common>=12.23.0,<13
+mne>=1.9,<2
+yousleep-common>=24.0.0,<25
