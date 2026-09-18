@@ -14,9 +14,11 @@ identification:
   name: "Example Downstream Analysis v1"
 
 purpose:
-  description: "This is a minimal analysis downstream example for the youSleep portal, which is used to demonstrate how one analysis (the Example Sleep Staging v1 analysis, specifically), can pass its produced output sleep stage events as an input to another analysis. This analyis does not perform any actual analysis, but simply returns the 'EEG arousal' field whereever the input events are 'Sleep stage ?'."
+  description: "This is a minimal downstream analysis example for the youSleep portal, showing how one analysis (e.g., Example Sleep Staging v1) passes its output to another. This analysis returns the 'EEG arousal' field where the input events are 'Sleep stage ?'."
   analysis_types:
     - "arousals"
+  tags:
+    - "example"
 
 evidence:
   publications:
@@ -28,63 +30,34 @@ evidence:
 docker:
   image: "ghcr.io/yousleep-ai/yousleep/example-downstream-analysis"
   tag: "latest"
+  # No digest pin (#515): this example deliberately tracks a mutable tag;
+  # production configs pin a digest alongside their version tag.
   remote_https_url: "https://github.com/yousleep-ai/analysis-example"
   # relative_ssh_key_path: './id_rsa' # Path from root repo to a private SSH key for accessing the remote repository
   relative_build_path: "./example-downstream-analysis" # Path from root repo to a folder storing the Dockerfile
 
-# System requirement ranges
+# Toy/example resource profile — small constants, no per-hour scaling.
 resources:
-  cpu_cores:
-    range: [1, 2] # 1-2 CPU cores * the multipler
-  system_memory_mib:
-    range: [1000, 2000] # 1-2 GB of system memory * the multipler
-  gpus: 0  # Number of GPUs when running with GPU as per gpu_required below.
-  gpu_memory_mib: null  # GPU memory requirements per GPU assigned
-  gpu_required: false  # If the analysis requires a GPU to run or can run on CPU only
-  per_hour_multipliers:
-    # Multipliers for resources required per hour of signal. 1.0 corresponds to the base resource
-    # requirements independt of the signal duration.
-    cpu_cores: 1.0
-    system_memory_mib: 1.0
-    #gpu_memory_mib: 1.0
-
-# Usage limits for the analysis given a subscription level
-limits:
-  subscription_levels:
-    free: # subscription level
-      max_hours_per_analysis: 24 # Maximum analysis duration in hours of a single analysis
-      max_hours_per_month: 24    # Maximum hours of signal data that can be scored per user per rolling month
-    pro:
-      max_hours_per_analysis: 24 # Example values
-      max_hours_per_month: 24    # Example values
+  cpu_cores: 1
+  base_system_memory_mib: 500
+  per_hour_per_channel_system_memory_mib: 0
+  base_gpu_memory_mib: 0
+  per_hour_per_channel_gpu_memory_mib: 0
+  artifacts_memory_mib: 50
+  per_hour_artifacts_memory_mib: 0
+  gpus: 0
+  gpu_required: false
 
 # Costs for the analysis
-costs:
-  currency: "credits"
-  subscription_levels:
-    free: # Subscription level
-      base: 0.0     # Base cost of the analysis
-      per_hour: 0.0 # Cost per hour of signal data scored
-    pro:
-      base: 0.0
-      per_hour: 0.0
-    enterprise:
-      base: 0.0
-      per_hour: 0.0
 
 # Priority of the analysis
 priority:
-  base: 0  # Base priority of the analysis (baseline for any user/subscription level). Higher value means higher priority.
-  subscription_levels:
-    free: 0  # Priority of the analysis for the free subscription level. Higher value means higher priority. Added to the base priority.
-    pro: 1
-    enterprise: 2
+  base: 0  # Base priority of the analysis (applies to every submission). Higher value means higher priority.
 
 # Licence information
 licence:
-  name: "YouSleep-Research"
-  url: "https://yousleep.ai/licences/research"
-  description: "This model can be used only for non-commercial, non-clinical, research-only purposes. It has no associated analysis cost. It can be used to score a maximum of 1000 hours of signal data per user per rolling month."
+  type: "non-commercial"
+  version: "latest"
 
 # Input data requirements for the analysis
 # A list of input files of possible types:
@@ -148,37 +121,7 @@ outputs:
 
 # Analysis parameters (global as well as analysis-specific listed)
 parameters:
-  defaults:
-    # Parameters that are always going to be passed to the analysis by the platform and therefor
-    # has to be handled by the analysis. They are listed here to make it clear that they are
-    # always present. The target/mapping can optionally be changed to match the analysis' argparser.
-    # Flag to use to pass path to the recording file
-    # Not used in this analysis
-    recording_input_file: "--input-file"
-    # Flag to use to pass path to events input file
-    # Not used in this analysis
-    events_input_file: "--events-file"
-    # Flag to use to pass path to input metadata file
-    # Not used in this analysis
-    # metadata_input_file: "--metadata-file"
-    # Flag to use to pass path to the analysis' output file
-    output_file: "--output-file"
-    # Flag to pass list (as JSON format string) of channel names that the analysis should consider
-    channel_names: "--channel-names"
-    # Flag to pass list (as JSON format string) of channel types of the channels
-    channel_types: "--channel-types"
-    # Flag to pass list (as JSON format string) of channel/signal units of the channels
-    channel_units: "--channel-units"
-    # Number of CPU cores that is available to the analysis
-    cpus: "--cpus"
-    # Amount of system memory that is available to the analysis in MiB
-    memory_mib: "--memory-mib"
-    # The number of GPUs that is available to the analysis
-    # Not used in this analysis
-    #gpus: "--gpus"
-    # The amount of GPU memory in MiB as a postive integer that is available to the analysis per GPU. Will be zero if no GPU is made available.
-    # Not used in this analysis
-    #gpu_memory_mib: "--gpu-memory-mib"
-    # The nvidia device ID GPU device that is available to the analysis. Will not be set if no GPU is made available.
-    # Not used in this analysis
-    #gpu_devices: "--gpu-devices"
+  # Every parameter reaches the container through the analysis manifest,
+  # keyed by `key` and typed as declared here (ADR-062). The platform passes
+  # nothing else: paths, channels and resources are in the manifest too.
+  custom: []

@@ -1,12 +1,17 @@
 """
-A minimal example of an analysis script that interfaces with the youSleep Portal.
+A minimal example of a downstream analysis that interfaces with the youSleep Portal.
+
+A downstream analysis depends on the events of another analysis. The portal
+invokes it with one argument, ``--manifest-file``; the manifest names the
+recording, the upstream events document (``inputs.events``) and the output
+path as the container sees them. This example writes one "EEG arousal" event
+wherever the upstream document has a "Sleep stage ?" event.
 """
 
 # Import inbuilt packages
 import logging
-from pathlib import Path
-from typing import List
 from argparse import ArgumentParser
+from pathlib import Path
 
 # Import third-party packages
 import mne
@@ -16,6 +21,7 @@ from yousleep_common.utils.event_blocks import (
     load_events_output,
     save_event_blocks,
 )
+from yousleep_common.utils.manifest import load_manifest
 
 # Define module logger
 logging.basicConfig(level=logging.INFO)
@@ -23,46 +29,22 @@ logger = logging.getLogger(__name__)
 
 
 def parse_args():
-    """
-    Parse the mandatory arguments & single custom --staging-window-length argument.
-    """
+    """Parse the one argument the portal passes."""
     parser = ArgumentParser(
-        description="A minimal example of an analysis script that interfaces with the "
-        "youSleep Portal."
-    )
-
-    # The following arguments are mandatory and will always be passed to the analysis by the portal.
-    # They must be handled by the analysis script even if not used.
-    # See analysis config parameters.defaults field for a list of all required parameters.
-    parser.add_argument("--input-file", type=str, help="Path to the input EDF file.")
-    parser.add_argument(
-        "--events-file", type=str, help="Path to the input events file."
-    )
-    parser.add_argument("--output-file", type=str, help="Path to the output JSON file.")
-    parser.add_argument(
-        "--channel-names", type=str, nargs="+", help="List of channel names."
+        description="A minimal example of a downstream analysis script that interfaces "
+        "with the youSleep Portal."
     )
     parser.add_argument(
-        "--channel-types",
-        type=str,
-        nargs="+",
-        help="List of channel types (e.g., 'EEG', 'EOG').",
+        "--manifest-file",
+        type=Path,
+        required=True,
+        help="The analysis manifest written by the portal (or by `yousleep-manifest` "
+        "for a hand run; give it --events-path).",
     )
-    parser.add_argument(
-        "--channel-units",
-        type=str,
-        nargs="+",
-        help="List of channel units (e.g., 'uV').",
-    )
-    parser.add_argument(
-        "--cpus", type=int, help="Number of CPUs available for parallel processing."
-    )
-    parser.add_argument("--memory-mib", type=int, help="Memory available in MiB.")
-
     return parser.parse_args()
 
 
-def create_event(label: str, start_ms: int, end_ms: int, channels: List[str]) -> Event:
+def create_event(label: str, start_ms: int, end_ms: int, channels: list[str]) -> Event:
     """
     Returns an Event with the given label, start and end times.
     """
@@ -77,28 +59,39 @@ def create_event(label: str, start_ms: int, end_ms: int, channels: List[str]) ->
 def main():
     """
     The main analysis function which does roughly the following:
-    1. Parse the arguments.
-    2. Load the EDF file and validates its length matches the events file.
-    3. Writes 'EEG arousal' events whereevere the events file has 'Sleep stage ?' events.
+    1. Read the manifest.
+    2. Load the EDF file and validate its length matches the upstream events.
+    3. Write 'EEG arousal' events wherever the upstream document has 'Sleep stage ?' events.
     """
-    # Parse the arguments
     args = parse_args()
-    logger.info("Running analysis with the following arguments: %s", vars(args))
+    manifest = load_manifest(args.manifest_file)
+    logger.info(
+        "Running %s for analysis %s with parameters %s",
+        manifest.analysis.config_id,
+        manifest.analysis.id,
+        manifest.parameters,
+    )
+    if manifest.inputs.events is None:
+        raise ValueError(
+            "This analysis needs upstream events; the manifest names none "
+            "(the configuration must declare an events input)."
+        )
 
-    # Read the EDF file
-    logger.info("Reading EDF file...")
-    edf_file = mne.io.read_raw_edf(args.input_file, preload=False)
+    # Read the EDF file the manifest names
+    recording = manifest.inputs.recording
+    logger.info("Reading EDF file %s...", recording.path)
+    edf_file = mne.io.read_raw_edf(recording.path, preload=False)
     sampling_rate = edf_file.info["sfreq"]
+    channel_names = [channel.name for channel in recording.channels]
 
-    # Compute how many epochs of 'staging_window_length' (seconds)
     n_samples = edf_file.n_times
     length_ms = int(n_samples / sampling_rate * 1000)
 
-    # Load the input events. `load_events_output` accepts every schema the
+    # Load the upstream events. `load_events_output` accepts every schema the
     # platform has ever written -- the block document and the legacy event
     # lists -- and returns one canonical document either way.
-    logger.info("Loading events...")
-    events = blocks_to_events(load_events_output(args.events_file).blocks)
+    logger.info("Loading upstream events from %s...", manifest.inputs.events.path)
+    events = blocks_to_events(load_events_output(manifest.inputs.events.path).blocks)
 
     # Check that the last event ends at the end of the recording
     last_event = max(events, key=lambda e: e.end_time_ms)
@@ -108,25 +101,19 @@ def main():
             f"at {length_ms} ms."
         )
 
-    # Create 'EDF Arousal' events matching the 'Sleep stage ?' events
+    # Create 'EEG arousal' events matching the 'Sleep stage ?' events
     logger.info("Creating 'EEG arousal' events...")
-    arousal_events = []
-    for event in events:
-        arousal_event = create_event(
-            "EEG arousal",
-            event.start_time_ms,
-            event.end_time_ms,
-            args.channel_names,
-        )
-        arousal_events.append(arousal_event)
+    arousal_events = [
+        create_event("EEG arousal", event.start_time_ms, event.end_time_ms, channel_names)
+        for event in events
+    ]
 
-    # Write the events output document (block-encoded on the way out)
-    logger.info("Saving %d events to %s", len(arousal_events), args.output_file)
-    # save_event_blocks is suffix-aware: the platform hands containers an
-    # output path ending .json.gz, and the document is written gzip-compressed
-    # there -- the artifact stored on S3 is byte-identical to this file.
-    Path(args.output_file).parent.mkdir(parents=True, exist_ok=True)
-    save_event_blocks(args.output_file, arousal_events)
+    # Write the events output document (block-encoded on the way out, gzip on a
+    # .gz suffix: the artifact stored on S3 is byte-identical to this file).
+    output_path = Path(manifest.outputs.events.path)
+    logger.info("Saving %d events to %s", len(arousal_events), output_path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    save_event_blocks(output_path, arousal_events)
 
 
 if __name__ == "__main__":
