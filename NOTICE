@@ -1,0 +1,9 @@
+youSleep analysis examples
+Copyright 2026 YouSleep (https://yousleep.ai)
+
+Worked examples showing how to package an analysis for the youSleep Portal.
+Licensed under the Apache License, Version 2.0 — see the LICENSE file.
+
+These examples are a starting point to copy and adapt. An analysis you build
+from them is yours; nothing here asks you to license your own work under these
+terms.
