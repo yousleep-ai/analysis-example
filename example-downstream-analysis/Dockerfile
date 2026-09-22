@@ -1,11 +1,6 @@
-# A deliberately plain, single-stage build: this file exists to be read, and
-# the contract it demonstrates has nothing to do with how the image is layered.
-#
-# A real analysis should do better. The platform's own images build with `uv`
-# from a lockfile in a builder stage and copy only the resulting environment
-# into a slim runtime, which is faster to rebuild and smaller to pull. Most of
-# this image is the scientific stack rather than anything here, so that is
-# where the size goes either way.
+# A plain, single-stage build: this file exists to be read. For a real
+# analysis, build from a lockfile in a multi-stage image —
+# https://docs.astral.sh/uv/guides/integration/docker/
 #
 # Any Python yousleep-common supports will do; a slim official image carries
 # one with pip and nothing else.
