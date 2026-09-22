@@ -118,7 +118,7 @@ outputs:
 # Analysis parameters (global as well as analysis-specific listed)
 parameters:
   # Every parameter reaches the container through the analysis manifest,
-  # keyed by `key` and typed as declared here (ADR-062). The platform passes
+  # keyed by `key` and typed as declared here. The platform passes
   # nothing else: paths, channels and resources are in the manifest too.
   custom:
     # Parameters that are specific to the analysis and are passed to the analysis by the user.

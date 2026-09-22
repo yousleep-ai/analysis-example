@@ -80,7 +80,20 @@ def main():
     # Read the EDF file the manifest names
     recording = manifest.inputs.recording
     logger.info("Reading EDF file %s...", recording.path)
-    edf_file = mne.io.read_raw_edf(recording.path, preload=False)
+    edf_file = mne.io.read_raw_edf(recording.path, preload=False, verbose="ERROR")
+
+    # Channels are selected by index and never by label -- see the staging
+    # example for why that distinction matters. A downstream analysis reads
+    # the recording the same way as any other.
+    for channel in recording.channels:
+        header_label = edf_file.ch_names[channel.index]
+        if header_label != channel.source_name:
+            raise SystemExit(
+                f"manifest names {channel.source_name!r} at index {channel.index}, "
+                f"but this file has {header_label!r} there"
+            )
+    edf_file.pick([channel.index for channel in recording.channels])
+
     sampling_rate = edf_file.info["sfreq"]
     channel_names = [channel.name for channel in recording.channels]
 

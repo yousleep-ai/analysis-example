@@ -6,8 +6,13 @@ and nothing else. The manifest (``yousleep_common.models.AnalysisManifest``)
 names the recording and the output path as the container sees them, the
 channels selected for the run, the custom parameters typed as the analysis
 configuration declared them, and the resources the run has. This example reads
-it, reads the recording's length, and writes one "Sleep stage ?" event per
+it, selects the channels it names, and writes one "Sleep stage ?" event per
 staging window in the block document the portal accepts.
+
+It does no analysis: every epoch is scored "Sleep stage ?". What it
+demonstrates is the interface -- read the manifest, select channels by index,
+write the events document where the manifest says. Replace the scoring loop
+with your own and the rest stands.
 """
 
 # Import inbuilt packages
@@ -83,12 +88,35 @@ def main():
     # default filled in by the portal; the fallback here is for hand runs.
     window_ms = int(manifest.parameters.get("staging-window-length-ms", 30000))
 
-    # Read the EDF file the manifest names. Channels are loaded by index and
-    # attributed by the name the user gave them.
     recording = manifest.inputs.recording
     logger.info("Reading EDF file %s...", recording.path)
-    edf_file = mne.io.read_raw_edf(recording.path, preload=False)
+    edf_file = mne.io.read_raw_edf(recording.path, preload=False, verbose="ERROR")
+
+    # Channels are selected BY INDEX, never by label. This is the single rule
+    # most worth getting right.
+    #
+    # `index` is the position of the signal in the EDF. `source_name` is the
+    # label the header carries at that position, and `name` is what the user
+    # calls the channel in the portal, which is what belongs in output. An EDF
+    # may repeat a label, and a user may rename a channel, so an analysis that
+    # matches on a name can read a different signal than the one the portal
+    # selected -- and it will do so silently, producing plausible results for
+    # the wrong data.
+    #
+    # Check the label the manifest expects is the label at that index, then
+    # take the index. A mismatch means the file is not the one the manifest
+    # describes, and failing here is much better than scoring the wrong signal.
+    for channel in recording.channels:
+        header_label = edf_file.ch_names[channel.index]
+        if header_label != channel.source_name:
+            raise SystemExit(
+                f"manifest names {channel.source_name!r} at index {channel.index}, "
+                f"but this file has {header_label!r} there"
+            )
+    edf_file.pick([channel.index for channel in recording.channels])
+
     sampling_rate = edf_file.info["sfreq"]
+    # Output is attributed with the names the user knows, not the header labels.
     channel_names = [channel.name for channel in recording.channels]
 
     # Compute how many staging windows the recording holds

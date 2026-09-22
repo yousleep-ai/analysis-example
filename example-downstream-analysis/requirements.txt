@@ -1,2 +1,8 @@
-mne>=1.9,<2
-yousleep-common>=24.0.0,<25
+# Pinned exactly, and a real analysis should do the same.
+#
+# The platform runs an image by content digest, so what matters is that this
+# image is reproducible rather than current: a range that resolves differently
+# next month gives you an image you cannot rebuild. Bump these deliberately,
+# rebuild, and re-pin the digest in the analysis configuration.
+mne==1.13.2
+yousleep-common==28.0.0
