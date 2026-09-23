@@ -119,30 +119,28 @@ same check.
 Use any EDF recording you have.
 
 ```bash
-pip install yousleep-common "mne>=1.9,<2"
+pip install yousleep-common
 
-# Write a manifest for a hand run. --channel names header labels; the tool
-# resolves them to indices, exactly as the portal would.
+# A manifest for a hand run. --channel names header labels; the tool resolves
+# them to indices, exactly as the portal would. Paths default to /local/…,
+# which is where the Docker run below mounts the working directory.
 yousleep-manifest --recording night.edf \
     --config-id example-sleep-staging-analysis-v1 \
     --channel "EEG Fpz-Cz" \
     --param staging-window-length-ms=30000 \
     --cpus 1 --memory-mib 1000 > manifest.json
 
-python example-sleep-staging-analysis/example-sleep-staging-analysis.py \
-    --manifest-file manifest.json
-```
-
-In Docker, mount a directory and pass the path you mounted it at:
-
-```bash
 docker build -t my-analysis example-sleep-staging-analysis/
-docker run --rm --network none -v "$PWD:/data" my-analysis --manifest-file /data/manifest.json
+docker run --rm --network none -v "$PWD:/local" my-analysis --manifest-file /local/manifest.json
 ```
 
-`--network none` is there because the portal runs it that way. The paths
-inside the manifest, `recording.path` and `outputs.events.path`, must be paths
-the container can see; `yousleep-manifest --help` shows how to set them.
+The events document lands at `output-events.json.gz` in the working
+directory. `--network none` is there because the portal runs it that way.
+
+To run the script without Docker, the manifest's paths have to be the host's:
+add `--recording-path night.edf --output-path events.json.gz` when writing
+it, install `"mne>=1.9,<2"` beside the package, and run
+`python example-sleep-staging-analysis/example-sleep-staging-analysis.py --manifest-file manifest.json`.
 
 The downstream example additionally needs `--events-path`, pointing at an
 events document from an earlier run.
