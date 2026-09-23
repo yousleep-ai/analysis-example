@@ -97,18 +97,21 @@ from yousleep_common.utils.manifest import load_manifest
 from yousleep_common.utils.analysis import select_channels
 from yousleep_common.utils.event_blocks import save_event_blocks
 
-manifest = load_manifest(path)                                # validated, typed
-raw = mne.io.read_raw_edf(manifest.inputs.recording.path)     # or any EDF reader
-selected = select_channels(manifest, raw.ch_names)            # the file's labels, in order
-raw.pick([channel.index for channel in selected])             # by index, never by label
-save_event_blocks(manifest.outputs.events.path, events)       # the encoding the portal reads
+manifest = load_manifest(path)                                        # validated, typed
+raw = mne.io.read_raw_edf(manifest.inputs.recording.path)             # or any EDF reader
+selected = select_channels(manifest, header_labels=raw.ch_names)      # refuses the wrong file
+raw.pick([channel.index for channel in selected])                     # select by index
+save_event_blocks(manifest.outputs.events.path, events)               # the encoding the portal reads
 ```
 
-`select_channels` takes the recording's header labels in file order, which
-every reader offers (`raw.ch_names` in MNE, `getSignalLabels()` in
-pyedflib), and checks that the label at each index the manifest names is
-the one the manifest says. It returns the channels with their indices; the
-reader then selects by those.
+The manifest already names the channels to read, by index. `select_channels`
+returns them, and the labels you pass are not used to choose anything: they
+are the file's header labels in file order (`raw.ch_names` in MNE,
+`getSignalLabels()` in pyedflib), and the helper checks that the label at
+each named index is the `source_name` the manifest recorded, raising before
+any signal is read if it is not. That is the whole point of the argument: a
+file that is not the one the manifest describes fails loudly instead of
+being analysed as if it were.
 
 Take any of them or none. If your environment cannot accept the package's
 dependency floors, read the JSON yourself; that is a complete path, not a
