@@ -170,6 +170,24 @@ Everything else is decided at registration and does not belong in the file:
 scheduling priority, pricing, the image digest, GPU placement, memory scaling
 measured on the platform.
 
+## Before you submit
+
+`yousleep-verify` runs an image the way the portal does and checks what it
+wrote. Each example carries the document its image produced on the check's
+synthetic recording, so a rebuild is compared against it:
+
+```bash
+pip install yousleep-common
+yousleep-verify --image ghcr.io/yousleep-ai/yousleep/example-sleep-staging-analysis:1.2.0 \
+    --config example-sleep-staging-analysis/example-sleep-staging-analysis.yaml \
+    --expected example-sleep-staging-analysis/conformance/expected-events.json.gz
+```
+
+For your own analysis, run it with `--record` once to write the expected
+document, commit it beside the configuration, and run it in CI on every
+build. The full list of checks, and what they do not cover, is in the
+package's documentation under *Checking an image*.
+
 ## From a script to the portal
 
 Today, registration is done with the platform team. You provide the image,
