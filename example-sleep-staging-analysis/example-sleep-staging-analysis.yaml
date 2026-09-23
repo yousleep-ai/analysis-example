@@ -1,138 +1,82 @@
-# An example analysis config for an analysis which does roughly the following:
-# - Recieves a single EDF file that has at least 1 EEG channel (any)
-# - Has a small set of resource requirements (1-2 CPU cores, 1-2 GB of system memory, no GPU)
-# - Has arbitrary costs (none) and limits (low)
-# - Outputs the "Sleep stage ?" unknown stage for all epochs in the recording
-# - Can be configured with a single example parameter '--staging-window-length' which can be 15, 30 or 60
+# The analysis configuration: what the portal needs to know to offer, run and
+# present an analysis. This one describes the staging example beside it.
+#
+# Only the fields an author can know are here. Everything the platform decides
+# — scheduling priority, pricing, the image digest pinned at registration, GPU
+# placement, memory scaling measured on the host — is filled in at
+# registration and does not belong in this file.
 
-# All other fields are examples/placeholders to be filled in by the analysis developer
-# The fields are described in the documentation at https://docs.yousleep.ai/analysis-config
-
-# General ID and version information
 identification:
-  # The human readable, unique name of the analysis
-  name: "Example Sleep Staging Analysis v1"
+  name: "Example Sleep Staging Analysis v1"   # unique, human-readable
 
 purpose:
-  description: "This is a minimal analysis example for the youSleep portal, which is used to demonstrate the analysis configuration format. It does not perform any actual analysis, but simply outputs a 'Sleep stage ?' field for all epochs in the input recording."
-  analysis_types:
-    - "staging"
-  tags:
-    - "example"
+  description: "A minimal example that scores every epoch 'Sleep stage ?'. It performs no analysis; it demonstrates the interface."
+  analysis_types: ["staging"]
+  tags: ["example"]
 
+# Who wrote the software, and under what terms it is published. Shown in the
+# catalogue and on the attribution page, so it has to be true. This example is
+# youSleep's own; an analysis packaged from software published elsewhere says
+#   origin: "third-party", developer: "<its authors>",
+#   source_url: "<where it is published>", source_licence: "<SPDX id, e.g. BSD-3-Clause>"
+provenance:
+  origin: "yousleep"
+  developer: "youSleep"
+
+# What the analysis cites. `by` is authorship, not quality: "developer" for the
+# authors' own publications, "independent" for anyone else's. Leave the list
+# empty if there is nothing to cite yet.
 evidence:
   publications:
     - title: "Example full paper title"
       url: https://www.example.com/
       name: "Authors et al., 2024"
+      by: "developer"
 
-# Docker image settings used to build the analysis image
+# The image the portal runs. A digest is pinned at registration; the tag alone
+# identifies the build you mean.
 docker:
   image: "ghcr.io/yousleep-ai/yousleep/example-sleep-staging-analysis"
-  tag: "latest"
-  # No digest pin (#515): this example deliberately tracks a mutable tag;
-  # production configs pin a digest alongside their version tag.
-  remote_https_url: "https://github.com/yousleep-ai/analysis-example"
-  # relative_ssh_key_path: './id_rsa' # Path from root repo to a private SSH key for accessing the remote repository
-  relative_build_path: "./example-sleep-staging-analysis" # Path from root repo to a folder storing the Dockerfile
+  tag: "1.1.0"
 
-# Toy/example resource profile — small constants, no per-hour scaling.
+# What one run needs. Cores and a base memory figure are what an author knows;
+# anything that scales with recording length is measured on the platform.
 resources:
   cpu_cores: 1
   base_system_memory_mib: 500
-  per_hour_per_channel_system_memory_mib: 0
-  base_gpu_memory_mib: 0
-  per_hour_per_channel_gpu_memory_mib: 0
-  artifacts_memory_mib: 50
-  per_hour_artifacts_memory_mib: 0
-  gpus: 0
-  gpu_required: false
 
-# Costs for the analysis
-
-# Priority of the analysis
-priority:
-  base: 0  # Base priority of the analysis (applies to every submission). Higher value means higher priority.
-
-# Licence information
+# The licence class the analysis is offered under. Set at registration.
 licence:
   type: "non-commercial"
   version: "latest"
 
-# Input data requirements for the analysis
-# A list of input files of possible types:
-#   - 'recording' for signal data / sleep recording, e.g. EEG/EOG. Usually an EDF file.
-#   - 'metadata' for metadata files, e.g. study information.
-#   - 'events' for event files, e.g. sleep stage annotations.
 inputs:
-  # The 'recording' input type represents one or more signal data / sleep recording file(s). Usually a single EDF file.
-  # Analyses that support recieving signals over multiple files should have 'allow_multiple' set to true and support
-  # recieving multiple paths as input to the recording argument.
-  metadata: null  # No metadata file is required for this analysis
-  events: null    # No events file is required for this analysis
   recording:
-    allow_multiple: false    # Only one recording file is allowed. Value will be a single path string.
-    format: "edf" # Only allow EDF file formats to be passed to the analysis
-    description: "The input recordings data to be scored."
-    minimum_duration_seconds: 1  # Example value
-    channels: []
-      # (optionally empty) a list of specific channel names and types that are required. Empty list means any channel as per channel_types is accepted.
-      # Cannot be used if 'channel_types' is set.
-      # Example:
-      # - name: "EEG Fp1-A2"
-      #   type: "EEG"
-      #   requirements:
-      #    ...
+    format: "edf"
+    # Either name exact channels (`channels`) or ask for types (`channel_types`).
+    # This example takes one to eight EEG channels, whatever they are called.
     channel_types:
-      # (optionally empty) or a list of channel types that are required. Empty list means only specific channels in 'channels' are accepted.
-      # Cannot be used if 'channels' is set.
       - type: "EEG"
         number:
-          range: [1, 8] # 1-8 EEG channels
+          range: [1, 8]
         requirements:
           sampling_rate:
-            range: [100, "+inf"] # Sampling rate must be at least 100 Hz, no upper limit
-          quality:
-            # A list of quality constraints that the channel must satisfy
-            - score:
-                range: [0.0, "+inf"] # Quality must be at least 0.0, no upper limit
-              # 'signal_quality_score' is a method that the platform uses to calculate the quality of the signal
-              # The method is defined by the platform and the analysis does not need to implement it
-              method: "signal_quality_score"
-              # modes can be 'global' or 'per_epoch'. If global, the channel cannot be passed to the
-              # analysis if the whole-recording quality is below the min_quality. If per_epoch, the channel
-              # can be passed to the analysis. If 'per_epoch', the analysis will receive the channel
-              # but the platform will indicate that any events within epochs with quality below
-              # min_quality should be considered uncertain.
-              mode: "global"
+            range: [100, "+inf"]     # at least 100 Hz
+          quality: []
 
 outputs:
-  # 'fields' is a list of output data that the analysis produces in the JSON output file
-  # The file may contain other fields, but they are not processed by the YouSleep platform
   events:
     - label: "Sleep stage ?"
-      instant: false
-      probabilistic: false
-      valued: false
 
-# Analysis parameters (global as well as analysis-specific listed)
+# Parameters the user can set. Each reaches the container in the manifest,
+# keyed by `key` and typed as declared. Omit the block if there are none.
 parameters:
-  # Every parameter reaches the container through the analysis manifest,
-  # keyed by `key` and typed as declared here. The platform passes
-  # nothing else: paths, channels and resources are in the manifest too.
   custom:
-    # Parameters that are specific to the analysis and are passed to the analysis by the user.
     - name: "Staging window length"
-      type: "int"
       key: "staging-window-length-ms"
+      type: "int"
       default: 30000
-      description: "The length of each staging (scoring) window — choose a duration below."
-      # An analysis that was characterised at only some of its accepted values declares
-      # them here, and every other value is then presented to the user as a research
-      # setting rather than as an equal option. This example was never validated at any
-      # window length — it emits "Sleep stage ?" regardless — so it makes no claim and
-      # leaves the field unset:
-      #   validated_regime: [30000]
+      description: "The length of each staging window."
       choices:
         - value: 15000
           description: "15 seconds"
@@ -140,3 +84,7 @@ parameters:
           description: "30 seconds"
         - value: 60000
           description: "60 seconds"
+      # An analysis characterised at some values declares them, and every other
+      # value is then presented as a research setting:
+      #   validated_regime: [30000]
+      # This example was never characterised at any, so it makes no claim.
