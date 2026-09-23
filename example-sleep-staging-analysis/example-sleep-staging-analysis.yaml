@@ -3,8 +3,8 @@
 #
 # Only the fields an author can know are here. Everything the platform decides
 # — scheduling priority, pricing, the image digest pinned at registration, GPU
-# placement, memory scaling measured on the host — is filled in at
-# registration and does not belong in this file.
+# placement, the memory terms that scale with recording length — is filled in
+# at registration and does not belong in this file.
 
 identification:
   name: "Example Sleep Staging Analysis v1"   # unique, human-readable
@@ -40,7 +40,8 @@ docker:
   tag: "1.2.0"
 
 # What one run needs. Cores and a base memory figure are what an author knows;
-# anything that scales with recording length is measured on the platform.
+# the terms that scale with recording length are set at registration, from
+# measurements the platform team makes on long recordings.
 resources:
   cpu_cores: 1
   base_system_memory_mib: 500
