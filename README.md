@@ -179,8 +179,8 @@ writes are:
 | `parameters` | What a user can set, typed, with defaults and choices. Omit if none |
 
 Everything else is decided at registration and does not belong in the file:
-scheduling priority, pricing, the image digest, GPU placement, memory scaling
-measured on the platform.
+scheduling priority, pricing, the image digest, GPU placement, and the memory
+terms that scale with recording length, which the platform team measures.
 
 ## Before you submit
 
