@@ -37,7 +37,7 @@ evidence:
 # identifies the build you mean.
 docker:
   image: "ghcr.io/yousleep-ai/yousleep/example-sleep-staging-analysis"
-  tag: "1.1.0"
+  tag: "1.2.0"
 
 # What one run needs. Cores and a base memory figure are what an author knows;
 # anything that scales with recording length is measured on the platform.

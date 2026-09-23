@@ -5,4 +5,4 @@
 # next month gives you an image you cannot rebuild. Bump these deliberately,
 # rebuild, and re-pin the digest in the analysis configuration.
 mne==1.13.2
-yousleep-common==28.3.0
+yousleep-common==28.3.1
