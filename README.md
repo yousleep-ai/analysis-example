@@ -121,14 +121,14 @@ Use any EDF recording you have.
 ```bash
 pip install yousleep-common
 
-# A manifest for a hand run. --channel names header labels; the tool resolves
-# them to indices, exactly as the portal would. Paths default to /local/…,
-# which is where the Docker run below mounts the working directory.
+# A manifest for a hand run, from the configuration: its id, cores, projected
+# memory and parameter defaults, as the portal would write them. --channel
+# names header labels; the tool resolves them to indices and refuses a
+# selection the portal would refuse. Paths default to /local/…, which is
+# where the Docker run below mounts the working directory.
 yousleep-manifest --recording night.edf \
-    --config-id example-sleep-staging-analysis-v1 \
-    --channel "EEG Fpz-Cz" \
-    --param staging-window-length-ms=30000 \
-    --cpus 1 --memory-mib 1000 > manifest.json
+    --config example-sleep-staging-analysis/example-sleep-staging-analysis.yaml \
+    --channel "EEG Fpz-Cz" > manifest.json
 
 docker build -t my-analysis example-sleep-staging-analysis/
 docker run --rm --network none -v "$PWD:/local" my-analysis --manifest-file /local/manifest.json
