@@ -21,6 +21,7 @@ from yousleep_common.utils.event_blocks import (
     load_events_output,
     save_event_blocks,
 )
+from yousleep_common.utils.analysis import select_channels
 from yousleep_common.utils.manifest import load_manifest
 
 # Define module logger
@@ -81,21 +82,12 @@ def main():
     recording = manifest.inputs.recording
     logger.info("Reading EDF file %s...", recording.path)
     edf_file = mne.io.read_raw_edf(recording.path, preload=False, verbose="ERROR")
-
-    # Channels are selected by index and never by label -- see the staging
-    # example for why that distinction matters. A downstream analysis reads
-    # the recording the same way as any other.
-    for channel in recording.channels:
-        header_label = edf_file.ch_names[channel.index]
-        if header_label != channel.source_name:
-            raise SystemExit(
-                f"manifest names {channel.source_name!r} at index {channel.index}, "
-                f"but this file has {header_label!r} there"
-            )
-    edf_file.pick([channel.index for channel in recording.channels])
+    # By index, label-checked — see the staging example for why.
+    selected = select_channels(manifest, edf_file.ch_names)
+    edf_file.pick([channel.index for channel in selected])
 
     sampling_rate = edf_file.info["sfreq"]
-    channel_names = [channel.name for channel in recording.channels]
+    channel_names = [channel.name for channel in selected]
 
     n_samples = edf_file.n_times
     length_ms = int(n_samples / sampling_rate * 1000)
