@@ -11,7 +11,9 @@ and the rest stands.
 
 Neither analyses anything. The staging one scores every epoch `Sleep stage ?`.
 What they demonstrate is the interface, so that swapping in your own scoring
-leaves everything else working.
+leaves everything else working. To start from an empty directory instead,
+`yousleep-init` (installed with `yousleep-common`) writes a project in the same
+form that passes the conformance check as generated.
 
 ## How the portal runs an analysis
 
@@ -26,10 +28,12 @@ it on a recording, the portal:
    it in the viewer and the reports.
 
 The container runs confined: **no network**, a read-only root filesystem, no
-capabilities, an unprivileged user, and a CPU and memory allowance from the
-configuration. It holds no credential and never talks to the portal. Everything
-it needs arrives as files, and everything it produces is a file it writes where
-the manifest says. If your analysis phones home for weights, a licence check or
+capabilities, an unprivileged user, a CPU and memory allowance from the
+configuration, and a time limit. A run is expected to finish within one minute
+and is stopped after two, regardless of recording length; a configuration that
+needs more time requests it at registration, with the reason. It holds no
+credential and never talks to the portal. Everything it needs arrives as files,
+and everything it produces is a file it writes where the manifest says. If your analysis phones home for weights, a licence check or
 anything else, it will work on your machine and fail on the platform.
 
 ## The contract
@@ -51,7 +55,7 @@ not reason about where it is.
 | `inputs.recording.path` | The recording file, on disk before you start |
 | `inputs.recording.channels[]` | The channels selected for this run: `index` (position in the file), `source_name` (the header label at that position), `name` (what the user calls it), `type`, `unit`, `sample_rate` |
 | `inputs.events.path` | An upstream events document, when the configuration declares an events input; absent otherwise |
-| `inputs.metadata` | Subject and study context (age, sex, lights off and on), when the configuration declares a metadata input |
+| `inputs.metadata` | Subject and study context (age, sex, lights off and on), when the configuration declares a metadata input. Only the subject values it declares are filled, each null when the study does not record it |
 | `parameters` | The configuration's parameters by `key`, already validated and typed. Read them; do not parse them |
 | `resources` | The cores and memory this run has. Size your thread pool from `cpus` |
 | `outputs.events.path` | Where to write the result |
@@ -169,7 +173,7 @@ writes are:
 |---|---|
 | `identification` | Its name |
 | `purpose` | What it does, which analysis types it belongs to, tags |
-| `provenance` | Who developed it, and for software published elsewhere, where and under what licence. Shown to users; it has to be true |
+| `provenance` | Who developed it, and for software published elsewhere, where, under what licence and on what basis it may be offered (`data_rights`). Shown to users; it has to be true |
 | `evidence` | What it cites, each marked as the developer's own or independent. May be empty |
 | `docker` | The image and tag |
 | `resources` | Cores, and a base memory figure |
@@ -204,15 +208,18 @@ package's documentation under *Checking an image*.
 
 Today, registration is done with the platform team. You provide the image,
 either as a reference we can pull or as a `docker save` archive, and the
-configuration file. We run the image against a real manifest under the same
-confinement the platform uses, pin its digest, set the fields that are ours to
-set, and register it. Your image is then copied into a registry the platform
-controls, because a past analysis has to stay re-runnable and that cannot
-depend on a registry we do not control.
+configuration file. We run `yousleep-verify` on it for the platform's
+architecture, pin its digest, set the fields that are ours to set, and register
+it. Your image is then copied into a registry the platform controls, because
+a past analysis has to stay re-runnable and that cannot depend on a registry
+we do not control.
 
-A self-service path, with the same checks run by a tool you can use yourself
-before submitting, is being designed. Until it exists, get in touch through
-the portal's contact form and choose *Integrate an algorithm*.
+The analysis is offered first to the organisation it is registered for. One
+developed outside youSleep is offered to every user once its developer's
+signed Analysis Declaration is on record; we send the form.
+
+A self-service registration path is being designed. Until it exists, get in
+touch through the portal's contact form and choose *Integrate an algorithm*.
 
 ## Licence
 
