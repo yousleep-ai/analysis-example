@@ -8,6 +8,7 @@ and the rest stands.
 |---|---|
 | `example-sleep-staging-analysis/` | The common case: read a recording, produce one event per epoch |
 | `example-downstream-analysis/` | An analysis that takes another analysis's events as its input |
+| `yasa-sleep-staging/` | A published algorithm, YASA, packaged in full: the finished project of the [Package YASA](https://docs.yousleep.ai/build/example-yasa/) tutorial |
 
 Neither analyses anything. The staging one scores every epoch `Sleep stage ?`.
 What they demonstrate is the interface, so that swapping in your own scoring

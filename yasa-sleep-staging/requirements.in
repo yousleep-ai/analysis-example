@@ -1,0 +1,7 @@
+# The direct dependencies. requirements.txt is compiled from this file for the
+# platform (linux/amd64, Python 3.12):
+#   uv pip compile requirements.in --python-version 3.12 \
+#       --python-platform x86_64-manylinux_2_28 -o requirements.txt
+yousleep-common==33.4.0
+mne==1.13.2
+yasa==0.7.0
