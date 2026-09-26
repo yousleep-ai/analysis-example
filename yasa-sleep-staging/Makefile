@@ -6,7 +6,7 @@
 #   make check                  validate the configuration only
 
 CONFIG    := yasa-staging.yaml
-IMAGE     := ghcr.io/example/yasa-staging:dev
+IMAGE     := ghcr.io/yousleep-ai/yousleep/analysis-yasa:dev
 RECORDING ?= night.edf
 EXPECTED  := conformance/expected-events.json.gz
 VERIFY_ARGS ?=

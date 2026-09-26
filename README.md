@@ -248,6 +248,12 @@ For your own analysis:
 2. Commit the document beside the configuration.
 3. Run the check in CI on every build.
 
+This repository does the same:
+[`verify.yml`](.github/workflows/verify.yml) runs the check for each example on
+every pull request, and [`publish.yml`](.github/workflows/publish.yml)
+publishes an example's image from a tag `<example>/v<version>` after the same
+check. Neither uses a credential beyond the workflow's own token.
+
 [Checking an image](https://docs.yousleep.ai/components/common/conformance/)
 lists every check and what the check does not cover.
 
