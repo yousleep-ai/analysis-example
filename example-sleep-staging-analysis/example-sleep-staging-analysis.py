@@ -56,7 +56,7 @@ def create_event(label: str, start_ms: int, end_ms: int, channels: list[str]) ->
     `Event` is the platform contract (yousleep_common). Building real Event
     objects validates labels and times here, in the container, instead of at
     upload -- and `save_event_blocks` below encodes them into the block
-    document, the one output format the platform accepts.
+    document, the format a container writes.
     """
     return Event(
         start_time_ms=start_ms,  # Start time of the event in milliseconds
