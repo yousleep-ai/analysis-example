@@ -1,0 +1,104 @@
+name: Publish
+
+# Publishes one project's image when a tag `<project>/v<version>` is pushed,
+# for example `yasa-sleep-staging/v1.0.3`. The job refuses a tag whose commit
+# is not on main, whose version differs from the configuration's docker.tag,
+# or whose image tag already exists in the registry. It then builds the image
+# for linux/amd64, runs the conformance check against the recorded output and
+# pushes the image it checked. The only credential is the workflow's own
+# token, which may write packages in this job only.
+on:
+  push:
+    tags: ["*/v*"]
+
+permissions:
+  contents: read
+
+env:
+  # The yousleep-common release whose yousleep-verify runs the check.
+  TOOLS: "33.4.1"
+
+jobs:
+  publish:
+    name: publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      packages: write  # to push the image to ghcr.io
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Install the platform tools
+        run: |
+          python3 -m venv "$RUNNER_TEMP/tools"
+          "$RUNNER_TEMP/tools/bin/pip" install --quiet "yousleep-common==$TOOLS"
+          echo "$RUNNER_TEMP/tools/bin" >> "$GITHUB_PATH"
+      - name: Resolve the project and its image
+        id: resolve
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          if [[ ! "$TAG" =~ ^([a-z0-9-]+)/v([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
+            echo "::error::$TAG is not <project>/v<major>.<minor>.<patch>"
+            exit 1
+          fi
+          project="${BASH_REMATCH[1]}"
+          version="${BASH_REMATCH[2]}"
+          if [ ! -f "$project/Dockerfile" ]; then
+            echo "::error::$project is not a project in this repository"
+            exit 1
+          fi
+          # Only reviewed code is published: main accepts changes through pull
+          # requests only.
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "::error::$TAG points at a commit that is not on main"
+            exit 1
+          fi
+          configs=("$project"/*.yaml)
+          read -r image tag < <(python -c 'import sys, yaml
+          docker = yaml.safe_load(open(sys.argv[1]))["docker"]
+          print(docker["image"], docker["tag"])' "${configs[0]}")
+          if [ "$tag" != "$version" ]; then
+            echo "::error::$TAG does not match docker.tag $tag in ${configs[0]}"
+            exit 1
+          fi
+          owner="${GITHUB_REPOSITORY_OWNER,,}"
+          if [[ "$image" != "ghcr.io/$owner/"* ]]; then
+            echo "::error::$image is not in ghcr.io/$owner"
+            exit 1
+          fi
+          echo "project=$project" >> "$GITHUB_OUTPUT"
+          echo "ref=$image:$tag" >> "$GITHUB_OUTPUT"
+      - name: Log in to the registry
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: echo "$TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
+      - name: Refuse an existing image tag
+        env:
+          REF: ${{ steps.resolve.outputs.ref }}
+        run: |
+          if docker manifest inspect "$REF" > /dev/null 2>&1; then
+            echo "::error::$REF already exists; a release publishes a new docker.tag"
+            exit 1
+          fi
+      - name: Build and check
+        env:
+          PROJECT: ${{ steps.resolve.outputs.project }}
+          REF: ${{ steps.resolve.outputs.ref }}
+        run: .github/scripts/check-project.sh "$PROJECT" "$REF"
+      - name: Push the checked image
+        env:
+          REF: ${{ steps.resolve.outputs.ref }}
+        run: |
+          set -euo pipefail
+          docker push "$REF"
+          digest=$(docker inspect --format '{{index .RepoDigests 0}}' "$REF")
+          echo "Published \`$digest\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "published $digest"
+      - name: Log out of the registry
+        if: always()
+        run: docker logout ghcr.io

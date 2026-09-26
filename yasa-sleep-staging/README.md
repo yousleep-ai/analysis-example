@@ -4,7 +4,8 @@ The finished project of the tutorial
 [Package YASA](https://docs.yousleep.ai/build/example-yasa/): YASA's automatic sleep
 staging ([Vallat and Walker, 2021](https://doi.org/10.7554/eLife.70092);
 [source](https://github.com/raphaelvallat/yasa), BSD-3-Clause) packaged as a youSleep
-analysis. The tutorial explains every file and the reasoning behind it.
+analysis. The tutorial explains every file and the reasoning behind it. The platform
+runs this project's image as the analysis *YASA sleep staging*.
 
 | File | Purpose |
 |---|---|

@@ -19,10 +19,6 @@ from yousleep_common.utils.analysis import select_channels
 from yousleep_common.utils.event_blocks import save_event_blocks
 from yousleep_common.utils.manifest import load_manifest
 
-# The generation of YASA's trained classifiers this analysis runs. YASA picks the
-# newest it ships by default, so a release adding one would change results.
-CLASSIFIERS = "0.5.0"
-
 # YASA's stage names -> the platform's label vocabulary.
 STAGES = {
     "WAKE": "Sleep stage W",
@@ -56,15 +52,9 @@ def main() -> None:
 
     staging = yasa.SleepStaging(raw, eeg_name=header["EEG"], eog_name=header.get("EOG"),
                                 emg_name=header.get("EMG"), metadata=metadata)
-    # The file YASA's "auto" would choose for these inputs, at the named generation.
-    model = "clf_eeg" + "".join(
-        suffix
-        for suffix, used in (("+eog", "EOG" in header), ("+emg", "EMG" in header),
-                             ("+demo", metadata is not None))
-        if used
-    )
-    classifier = Path(yasa.__file__).parent / "classifiers" / f"{model}_lgb_{CLASSIFIERS}.joblib"
-    hypnogram = staging.predict(path_to_model=str(classifier))  # stages per epoch, with .proba
+    # YASA chooses the classifier that matches the channels and demographics it
+    # was given; the version pinned in requirements.txt fixes which ones it ships.
+    hypnogram = staging.predict()  # stages per epoch, with .proba
 
     # One event per epoch for the predicted stage, or one per stage when the
     # user asks for every stage's probability.

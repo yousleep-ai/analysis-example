@@ -1,0 +1,43 @@
+name: Verify
+
+# Runs the conformance check on every project's image, on each pull request and
+# each push to main: the image is built for linux/amd64 and its output compared
+# with the project's recorded document. The job reads the repository and uses
+# no credential.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+env:
+  # The yousleep-common release whose yousleep-verify runs the check.
+  TOOLS: "33.4.1"
+
+jobs:
+  verify:
+    name: verify (${{ matrix.project }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        project:
+          - example-sleep-staging-analysis
+          - example-downstream-analysis
+          - yasa-sleep-staging
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install the platform tools
+        run: |
+          python3 -m venv "$RUNNER_TEMP/tools"
+          "$RUNNER_TEMP/tools/bin/pip" install --quiet "yousleep-common==$TOOLS"
+          echo "$RUNNER_TEMP/tools/bin" >> "$GITHUB_PATH"
+      - name: Build and check
+        env:
+          PROJECT: ${{ matrix.project }}
+        run: .github/scripts/check-project.sh "$PROJECT" "verify/$PROJECT"
