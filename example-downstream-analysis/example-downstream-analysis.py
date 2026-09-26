@@ -92,9 +92,8 @@ def main():
     n_samples = edf_file.n_times
     length_ms = int(n_samples / sampling_rate * 1000)
 
-    # Load the upstream events. `load_events_output` accepts every schema the
-    # platform has ever written -- the block document and the legacy event
-    # lists -- and returns one canonical document either way.
+    # Load the upstream events. `load_events_output` reads the block document
+    # and the flat event lists alike, and returns one canonical document.
     logger.info("Loading upstream events from %s...", manifest.inputs.events.path)
     events = blocks_to_events(load_events_output(manifest.inputs.events.path).blocks)
 
