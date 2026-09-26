@@ -1,0 +1,7 @@
+manifest.json
+output-events.json.gz
+*.edf
+*.EDF
+__pycache__/
+*.pyc
+.venv/

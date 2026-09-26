@@ -1,0 +1,112 @@
+# The analysis configuration: what the platform needs to offer, run and present
+# the analysis. Every block below is required unless its comment says
+# otherwise. The reference: https://docs.yousleep.ai/components/common/analysis-authoring/#the-configuration-file
+#
+# Validate it any time with `make check` (yousleep-verify --config-only).
+
+identification:
+  name: "YASA sleep staging"
+
+purpose:
+  description: "Automatic sleep staging with YASA's pre-trained LightGBM classifier, from one EEG channel with optional EOG and EMG."
+  # One or more of: staging, rapid-eye-movements, arousals, artifacts.
+  analysis_types: ["staging"]
+  # tags: []   # optional, free-form
+
+provenance:
+  # "third-party" for an analysis developed outside youSleep. Shown to users.
+  origin: "third-party"
+  developer: "Raphael Vallat"
+  source_url: "https://github.com/raphaelvallat/yasa"
+  source_licence: "BSD-3-Clause"
+  # On what basis the analysis may be offered under the licence class
+  # below. 'pending' lets you build, verify and run it privately; the
+  # platform publishes a third-party analysis only with the developer's
+  # signed Analysis Declaration on record (basis: declaration, see the guide).
+  data_rights:
+    basis: "pending"
+evidence:
+  publications:
+    - title: "An open-source, high-performance tool for automated sleep staging"
+      url: "https://doi.org/10.7554/eLife.70092"
+      name: "Vallat and Walker, 2021"
+      by: "developer"
+
+licence:
+  # The licence class it is offered under: non-commercial or commercial.
+  # Confirmed at registration.
+  type: "non-commercial"
+
+docker:
+  image: "ghcr.io/example/yasa-staging"
+  tag: "1.0.0"
+  # The digest is pinned at registration.
+
+resources:
+  cpu_cores: 1
+  base_system_memory_mib: 600   # yousleep-verify reported a peak of 425 MiB
+  # Memory that scales with recording length is measured and set at registration.
+
+inputs:
+  recording:
+    # By type, with a count range: the platform selects that many channels of
+    # the type. Or by exact channel names, when the method needs particular
+    # ones (use `channels` instead of `channel_types`):
+    #   channels:
+    #     - name: "EEG Fpz-Cz"
+    #       requirements: {sampling_rate: {range: [100, "+inf"]}, quality: []}
+    # A derivation the file does not carry is prepared before upload; the
+    # platform never asks an analysis to derive a channel.
+    channel_types:
+      - type: "EEG"
+        number:
+          range: [1, 1]
+        requirements:
+          sampling_rate:
+            range: [81, "+inf"]   # YASA requires more than 80 Hz
+          quality: []   # signal-quality requirements the platform checks; none here
+      - type: "EOG"
+        number:
+          range: [0, 1]
+        requirements:
+          sampling_rate:
+            range: [81, "+inf"]   # YASA requires more than 80 Hz
+          quality: []   # signal-quality requirements the platform checks; none here
+      - type: "EMG"
+        number:
+          range: [0, 1]
+        requirements:
+          sampling_rate:
+            range: [81, "+inf"]   # YASA requires more than 80 Hz
+          quality: []   # signal-quality requirements the platform checks; none here
+    # YASA recommends at least five minutes of data.
+    minimum_duration_seconds: 300
+  # events:     # for an analysis that builds on another's events
+  # Subject context: YASA's classifiers with demographics need an age and a
+  # binary sex. Either may be null; the script then runs without both.
+  metadata: ["age", "sex"]
+
+outputs:
+  # One event per 30-second epoch, the predicted stage with its probability;
+  # with store-all-probabilities, one event per stage per epoch.
+  supports_full_probabilistic_output: true
+  events:
+    - label: "Sleep stage W"
+      probabilistic: true
+    - label: "Sleep stage N1"
+      probabilistic: true
+    - label: "Sleep stage N2"
+      probabilistic: true
+    - label: "Sleep stage N3"
+      probabilistic: true
+    - label: "Sleep stage R"
+      probabilistic: true
+
+parameters:
+  custom:
+    - name: "Store all probabilities"
+      key: "store-all-probabilities"
+      type: bool
+      default: false
+      choices: [false, true]
+      description: "Write every stage's probability per epoch instead of the predicted stage only."
