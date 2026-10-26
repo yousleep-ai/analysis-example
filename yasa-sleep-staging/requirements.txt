@@ -6,7 +6,7 @@ antropy==0.2.2
     # via yasa
 anyio==4.15.1
     # via httpx
-certifi==2026.7.22
+certifi==2026.10.23
     # via
     #   httpcore
     #   httpx
