@@ -27,11 +27,13 @@ provenance:
 # authors' own publications, "independent" for anyone else's. Leave the list
 # empty if there is nothing to cite yet.
 evidence:
-  publications:
-    - title: "Example full paper title"
-      url: https://www.example.com/
-      name: "Authors et al., 2024"
-      by: "developer"
+  # An example has nothing to cite. A real analysis lists what it cites,
+  # each publication as:
+  #   - title: "<the paper's full title>"
+  #     url: <its DOI or publisher link>
+  #     name: "<its authors, et al., year>"
+  #     by: "developer"
+  publications: []
 
 # The image the portal runs. A digest is pinned at registration; the tag alone
 # identifies the build you mean.

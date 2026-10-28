@@ -15,11 +15,13 @@ provenance:
   developer: "youSleep"
 
 evidence:
-  publications:
-    - title: "Example full paper title"
-      url: https://www.example.com/
-      name: "Authors et al., 2024"
-      by: "developer"
+  # An example has nothing to cite. A real analysis lists what it cites,
+  # each publication as:
+  #   - title: "<the paper's full title>"
+  #     url: <its DOI or publisher link>
+  #     name: "<its authors, et al., year>"
+  #     by: "developer"
+  publications: []
 
 docker:
   image: "ghcr.io/yousleep-ai/yousleep/example-downstream-analysis"
